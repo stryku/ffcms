@@ -56,20 +56,6 @@ class FilterStringCreator:
         return FILTER_TEMPLATE.format(inputs=inputs_str, filter=filter_str, output=output_str)
 
 
-def get_input_mapping_filters(definitions):
-    filters = []
-
-    i = 0
-    for entry in definitions['inputs']:
-        raw_input = '[{}:v]'.format(i)
-        output_id = LINK_ID_TEMPLATE.format(entry['id'])
-        filter = FILTER_TEMPLATE.format(inputs=raw_input, filter='', output=output_id)
-        filters.append(filter)
-        i += 1
-
-    return filters
-
-
 def join_link_ids(ids):
     link_ids = []
 
@@ -92,17 +78,10 @@ def get_filtering_filters(definitions):
 def definitions_to_filter_complex(definitions):
     builder = FilterComplexBuilder()
 
-    # for f in get_input_mapping_filters(definitions):
-    #     builder.with_filter(f)
-
     for f in get_filtering_filters(definitions):
         builder.with_filter(f)
 
     return builder.build()
-
-
-def collect_input_files(definitions):
-    return [entry['file'] for entry in definitions['inputs']]
 
 
 def create_ffmpeg_command(json_str):
@@ -118,7 +97,8 @@ def create_ffmpeg_command(json_str):
     return command_template.format(input_files, filter_complex_str, filter_complex_output, output_file_name)
 
 
-test_json = open('test.json', 'r').read()
+with open('test.json', 'r') as f:
+    test_json = f.read()
 
 result = create_ffmpeg_command(test_json)
 print(result)
