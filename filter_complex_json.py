@@ -21,7 +21,7 @@ class FilterComplexBuilder:
         self._filters.append(f)
 
     def build(self):
-        return ';'.join(self._filters)
+        return ';\n'.join(self._filters)
 
         
 def json_to_filter_complex(json_str):
@@ -32,11 +32,12 @@ def json_to_filter_complex(json_str):
     filter_template = '{inputs}{filter}{output}'
 
     i = 0
-    for input_id, input_file in definitions['inputs']:
+    for entry in definitions['inputs']:
         raw_input = '[{}:v]'.format(i)
-        output_id = input_id
+        output_id = '[{}]'.format(entry['id'])
         filter = filter_template.format(inputs=raw_input, filter='', output=output_id)
         builder.with_filter(filter)
+        i += 1
 
     return builder.build()
 
