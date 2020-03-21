@@ -23,7 +23,37 @@ class FilterComplexBuilder:
         self._filters.append(f)
 
     def build(self):
-        return ';\n'.join(self._filters)
+        return ';'.join(self._filters)
+
+
+class FilterStringCreator:
+    def __init__(self):
+        self._simple_filters = [
+            'negate',
+            'hflip',
+            'edgedetect'
+        ]
+
+    def create(self, inputs, filter_name, output):
+        if filter_name in self._simple_filters:
+            return self._create_simple_filter(inputs, filter_name, output)
+        elif filter_name == 'hstack':
+            return self._create_stack(inputs, output, 'h')
+        elif filter_name == 'vstack':
+            return self._create_stack(inputs, output, 'v')
+
+    def _create_stack(self, inputs, output, stack_letter):
+        stack = '{}stack=inputs={}'.format(stack_letter, len(inputs))
+        return self._create_filter(inputs, stack, output)
+
+    def _create_simple_filter(self, inputs, filter_name, output):
+        return self._create_filter(inputs, filter_name, output)
+
+    @staticmethod
+    def _create_filter(inputs, filter_str, output):
+        inputs_str = join_link_ids(inputs)
+        output_str = LINK_ID_TEMPLATE.format(output)
+        return FILTER_TEMPLATE.format(inputs=inputs_str, filter=filter_str, output=output_str)
 
 
 def get_input_mapping_filters(definitions):
@@ -53,22 +83,17 @@ def get_filtering_filters(definitions):
     filters = []
 
     for entry in definitions['filter']:
-        inputs = join_link_ids(entry['inputs'])
-        output_id = LINK_ID_TEMPLATE.format(entry['output'])
-
-        f = FILTER_TEMPLATE.format(inputs=inputs, filter=entry['filter'], output=output_id)
+        f = FilterStringCreator().create(entry['inputs'], entry['filter'], entry['output'])
         filters.append(f)
 
     return filters
 
 
-def json_to_filter_complex(json_str):
+def definitions_to_filter_complex(definitions):
     builder = FilterComplexBuilder()
 
-    definitions = json.loads(json_str)
-
-    for f in get_input_mapping_filters(definitions):
-        builder.with_filter(f)
+    # for f in get_input_mapping_filters(definitions):
+    #     builder.with_filter(f)
 
     for f in get_filtering_filters(definitions):
         builder.with_filter(f)
@@ -76,8 +101,27 @@ def json_to_filter_complex(json_str):
     return builder.build()
 
 
+def collect_input_files(definitions):
+    return [entry['file'] for entry in definitions['inputs']]
+
+
+def create_ffmpeg_command(json_str):
+    command_template = 'ffmpeg -y {} -filter_complex "{}" -map "{}" -c:v ffv1 {}'
+
+    definitions = json.loads(json_str)
+
+    input_files = ' '.join(['-i ' + entry['file'] for entry in definitions['inputs']])
+    filter_complex_str = definitions_to_filter_complex(definitions)
+    filter_complex_output = LINK_ID_TEMPLATE.format(definitions['filter'][-1]['output'])
+    output_file_name = definitions['output']
+
+    return command_template.format(input_files, filter_complex_str, filter_complex_output, output_file_name)
+
+
 test_json = open('test.json', 'r').read()
 
-result = json_to_filter_complex(test_json)
+result = create_ffmpeg_command(test_json)
 print(result)
+
+
 
