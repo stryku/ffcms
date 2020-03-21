@@ -26,8 +26,34 @@ class FilterComplexBuilder:
         return ';'.join(self._filters)
 
 
+class IdManager:
+    def __init__(self, definitions):
+        self._definitions = definitions
+
+    def map_id(self, id_to_map):
+        i = 0
+        for entry in self._definitions['inputs']:
+            if id_to_map == entry['id']:
+                return '{}:v'.format(i)
+
+            i += 1
+
+        return id_to_map
+
+    def join_link_ids(self, ids):
+        link_ids = []
+
+        for link_id in ids:
+            link_id = self.map_id(link_id)
+            link_ids.append(LINK_ID_TEMPLATE.format(link_id))
+
+        return ''.join(link_ids)
+
+
 class FilterStringCreator:
-    def __init__(self):
+    def __init__(self, id_manager):
+        self._id_manager = id_manager
+
         self._simple_filters = [
             'negate',
             'hflip',
@@ -49,27 +75,20 @@ class FilterStringCreator:
     def _create_simple_filter(self, inputs, filter_name, output):
         return self._create_filter(inputs, filter_name, output)
 
-    @staticmethod
-    def _create_filter(inputs, filter_str, output):
-        inputs_str = join_link_ids(inputs)
+    def _create_filter(self, inputs, filter_str, output):
+        inputs_str = self._id_manager.join_link_ids(inputs)
         output_str = LINK_ID_TEMPLATE.format(output)
         return FILTER_TEMPLATE.format(inputs=inputs_str, filter=filter_str, output=output_str)
-
-
-def join_link_ids(ids):
-    link_ids = []
-
-    for link_id in ids:
-        link_ids.append(LINK_ID_TEMPLATE.format(link_id))
-
-    return ''.join(link_ids)
 
 
 def get_filtering_filters(definitions):
     filters = []
 
+    id_manager = IdManager(definitions)
+
     for entry in definitions['filter']:
-        f = FilterStringCreator().create(entry['inputs'], entry['filter'], entry['output'])
+        f = FilterStringCreator(id_manager=id_manager) \
+            .create(entry['inputs'], entry['filter'], entry['output'])
         filters.append(f)
 
     return filters
