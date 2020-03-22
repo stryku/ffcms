@@ -95,8 +95,9 @@ class Ffcms:
         filters = [f for f in self._get_filtering_filters()]
         return ';'.join(filters)
 
-    def create_ffmpeg_command(self):
-        command_template = 'ffmpeg -y {} -filter_complex "{}" -map "{}" -c:v ffv1 {}'
+    def create_ffmpeg_command(self, command_template=None):
+        if command_template is None:
+            command_template = 'ffmpeg -y {} -filter_complex "{}" -map "{}" -c:v ffv1 {}'
 
         input_files = ' '.join(['-i ' + entry['file'] for entry in self._definitions['in']])
         filter_complex_str = self.create_filter_complex()
