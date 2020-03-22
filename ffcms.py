@@ -1,4 +1,5 @@
 import json
+import argparse
 
 """
 ffmpeg -y -i shord_behemot.mov -i shord_behemot.mov -i shord_behemot.mov -i shord_behemot.mov -filter_complex \      
@@ -126,8 +127,21 @@ class Ffcms:
 
 
 if __name__ == '__main__':
-    with open('test_first.json', 'r') as f:
-        test_json = f.read()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('input',
+                        help='The input for Ffcms. It can be a string input or a path to a file with the string input.')
+    parser.add_argument('--filter_complex', help='Print only -filter_complex string', action='store_true')
 
-    result = Ffcms(json.loads(test_json)).create_ffmpeg_command()
-    print(result)
+    args = parser.parse_args()
+
+    input = args.input
+    if args.input[0] != '{':
+        with open(args.input, 'r') as f:
+            input = f.read()
+
+    ffcms = Ffcms(json.loads(input))
+
+    if args.filter_complex:
+        print(ffcms.create_filter_complex())
+    else:
+        print(ffcms.create_ffmpeg_command())
