@@ -125,8 +125,9 @@ class Ffcms:
         return filters
 
 
-with open('test_first.json', 'r') as f:
-    test_json = f.read()
+if __name__ == '__main__':
+    with open('test_first.json', 'r') as f:
+        test_json = f.read()
 
-result = Ffcms(json.loads(test_json)).create_ffmpeg_command()
-print(result)
+    result = Ffcms(json.loads(test_json)).create_ffmpeg_command()
+    print(result)
