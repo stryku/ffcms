@@ -96,12 +96,15 @@ class FilterStringCreator:
 
 
 class Ffcms:
-    def get_filtering_filters(self, definitions):
+    def __init__(self, definitions):
+        self._definitions = definitions
+
+    def get_filtering_filters(self):
         filters = []
 
-        id_manager = IdManager(definitions)
+        id_manager = IdManager(self._definitions)
 
-        for entry in definitions['filters']:
+        for entry in self._definitions['filters']:
             entry_filter = entry['filter']
             if type(entry_filter) is str:
                 entry_filter = {'name': entry_filter}
@@ -110,29 +113,26 @@ class Ffcms:
             if type(entry_in) is str:
                 entry_in = [entry_in]
 
-            f = FilterStringCreator(id_manager=id_manager) \
-                .create(entry_in, entry_filter, entry['out'])
+            f = FilterStringCreator(id_manager=id_manager).create(entry_in, entry_filter, entry['out'])
             filters.append(f)
 
         return filters
 
-    def definitions_to_filter_complex(self, definitions):
+    def definitions_to_filter_complex(self):
         builder = FilterComplexBuilder()
 
-        for f in self.get_filtering_filters(definitions):
+        for f in self.get_filtering_filters():
             builder.with_filter(f)
 
         return builder.build()
 
-    def create_ffmpeg_command(self, json_str):
+    def create_ffmpeg_command(self):
         command_template = 'ffmpeg -y {} -filter_complex "{}" -map "{}" -c:v ffv1 {}'
 
-        definitions = json.loads(json_str)
-
-        input_files = ' '.join(['-i ' + entry['file'] for entry in definitions['in']])
-        filter_complex_str = self.definitions_to_filter_complex(definitions)
-        filter_complex_output = LINK_ID_TEMPLATE.format(definitions['filters'][-1]['out'])
-        output_file_name = definitions['out']
+        input_files = ' '.join(['-i ' + entry['file'] for entry in self._definitions['in']])
+        filter_complex_str = self.definitions_to_filter_complex()
+        filter_complex_output = LINK_ID_TEMPLATE.format(self._definitions['filters'][-1]['out'])
+        output_file_name = self._definitions['out']
 
         return command_template.format(input_files, filter_complex_str, filter_complex_output, output_file_name)
 
@@ -140,5 +140,5 @@ class Ffcms:
 with open('test_first.json', 'r') as f:
     test_json = f.read()
 
-result = Ffcms().create_ffmpeg_command(test_json)
+result = Ffcms(json.loads(test_json)).create_ffmpeg_command()
 print(result)
