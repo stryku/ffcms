@@ -39,7 +39,7 @@ class IdManager:
 
     def map_id(self, id_to_map):
         i = 0
-        for entry in self._definitions['inputs']:
+        for entry in self._definitions['in']:
             if id_to_map == entry['id']:
                 return '{}:v'.format(i)
 
@@ -108,7 +108,7 @@ def get_filtering_filters(definitions):
             entry_filter = {'name': entry_filter}
 
         f = FilterStringCreator(id_manager=id_manager) \
-            .create(entry['inputs'], entry_filter, entry['output'])
+            .create(entry['in'], entry_filter, entry['out'])
         filters.append(f)
 
     return filters
@@ -128,10 +128,10 @@ def create_ffmpeg_command(json_str):
 
     definitions = json.loads(json_str)
 
-    input_files = ' '.join(['-i ' + entry['file'] for entry in definitions['inputs']])
+    input_files = ' '.join(['-i ' + entry['file'] for entry in definitions['in']])
     filter_complex_str = definitions_to_filter_complex(definitions)
-    filter_complex_output = LINK_ID_TEMPLATE.format(definitions['filter'][-1]['output'])
-    output_file_name = definitions['output']
+    filter_complex_output = LINK_ID_TEMPLATE.format(definitions['filter'][-1]['out'])
+    output_file_name = definitions['out']
 
     return command_template.format(input_files, filter_complex_str, filter_complex_output, output_file_name)
 
