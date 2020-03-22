@@ -21,17 +21,6 @@ FILTER_TEMPLATE = '{inputs}{filter}{output}'
 LINK_ID_TEMPLATE = '[{}]'
 
 
-class FilterComplexBuilder:
-    def __init__(self):
-        self._filters = []
-
-    def with_filter(self, f):
-        self._filters.append(f)
-
-    def build(self):
-        return ';'.join(self._filters)
-
-
 class IdManager:
     def __init__(self, definitions):
         self._definitions = definitions
@@ -120,12 +109,8 @@ class Ffcms:
         return filters
 
     def definitions_to_filter_complex(self):
-        builder = FilterComplexBuilder()
-
-        for f in self.get_filtering_filters():
-            builder.with_filter(f)
-
-        return builder.build()
+        filters = [f for f in self.get_filtering_filters()]
+        return ';'.join(filters)
 
     def create_ffmpeg_command(self):
         command_template = 'ffmpeg -y {} -filter_complex "{}" -map "{}" -c:v ffv1 {}'
