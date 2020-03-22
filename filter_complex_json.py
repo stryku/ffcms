@@ -1,6 +1,5 @@
 import json
 
-
 """
 ffmpeg -y -i shord_behemot.mov -i shord_behemot.mov -i shord_behemot.mov -i shord_behemot.mov -filter_complex \      
 "[1:v]negate[a]; \
@@ -20,17 +19,6 @@ output.mp4
 
 FILTER_TEMPLATE = '{inputs}{filter}{output}'
 LINK_ID_TEMPLATE = '[{}]'
-
-
-class FilterComplexBuilder:
-    def __init__(self):
-        self._filters = []
-
-    def with_filter(self, f):
-        self._filters.append(f)
-
-    def build(self):
-        return ';'.join(self._filters)
 
 
 class IdManager:
@@ -71,7 +59,7 @@ class FilterStringCreator:
         name = filter_definition['name']
         if name in self._simple_filters:
             return self._create_simple_filter(inputs, filter_definition, output)
-        elif name== 'hstack':
+        elif name == 'hstack':
             return self._create_stack(inputs, output, 'h')
         elif name == 'vstack':
             return self._create_stack(inputs, output, 'v')
@@ -96,52 +84,50 @@ class FilterStringCreator:
         return FILTER_TEMPLATE.format(inputs=inputs_str, filter=filter_str, output=output_str)
 
 
-def get_filtering_filters(definitions):
-    filters = []
+class Ffcms:
+    def __init__(self, definitions):
+        self._definitions = definitions
 
-    id_manager = IdManager(definitions)
+        self._id_manager = IdManager(definitions=self._definitions)
+        self._filter_string_creator = FilterStringCreator(id_manager=self._id_manager)
 
-    for entry in definitions['filters']:
-        entry_filter = entry['filter']
-        if type(entry_filter) is str:
-            entry_filter = {'name': entry_filter}
+    def create_filter_complex(self):
+        filters = [f for f in self._get_filtering_filters()]
+        return ';'.join(filters)
 
-        entry_in = entry['in']
-        if type(entry_in) is str:
-            entry_in = [entry_in]
+    def create_ffmpeg_command(self, command_template=None):
+        if command_template is None:
+            command_template = 'ffmpeg -y {inputs} -filter_complex "{filter_complex_str}" -map "{filter_complex_out}" -c:v ffv1 {output_file_name}'
 
-        f = FilterStringCreator(id_manager=id_manager) \
-            .create(entry_in, entry_filter, entry['out'])
-        filters.append(f)
+        input_files = ' '.join(['-i ' + entry['file'] for entry in self._definitions['in']])
+        filter_complex_str = self.create_filter_complex()
+        filter_complex_output = LINK_ID_TEMPLATE.format(self._definitions['filters'][-1]['out'])
+        output_file_name = self._definitions['out']
 
-    return filters
+        return command_template.format(inputs=input_files, filter_complex_str=filter_complex_str,
+                                       filter_complex_out=filter_complex_output, output_file_name=output_file_name)
 
+    def _get_filtering_filters(self):
+        filters = []
 
-def definitions_to_filter_complex(definitions):
-    builder = FilterComplexBuilder()
+        for entry in self._definitions['filters']:
+            entry_filter = entry['filter']
+            if type(entry_filter) is str:
+                entry_filter = {'name': entry_filter}
 
-    for f in get_filtering_filters(definitions):
-        builder.with_filter(f)
+            entry_in = entry['in']
+            if type(entry_in) is str:
+                entry_in = [entry_in]
 
-    return builder.build()
+            f = self._filter_string_creator.create(entry_in, entry_filter, entry['out'])
+            filters.append(f)
 
-
-def create_ffmpeg_command(json_str):
-    command_template = 'ffmpeg -y {} -filter_complex "{}" -map "{}" -c:v ffv1 {}'
-
-    definitions = json.loads(json_str)
-
-    input_files = ' '.join(['-i ' + entry['file'] for entry in definitions['in']])
-    filter_complex_str = definitions_to_filter_complex(definitions)
-    filter_complex_output = LINK_ID_TEMPLATE.format(definitions['filters'][-1]['out'])
-    output_file_name = definitions['out']
-
-    return command_template.format(input_files, filter_complex_str, filter_complex_output, output_file_name)
+        return filters
 
 
-with open('test_first.json', 'r') as f:
-    test_json = f.read()
+if __name__ == '__main__':
+    with open('test_first.json', 'r') as f:
+        test_json = f.read()
 
-result = create_ffmpeg_command(test_json)
-print(result)
-
+    result = Ffcms(json.loads(test_json)).create_ffmpeg_command()
+    print(result)
