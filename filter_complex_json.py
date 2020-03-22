@@ -103,12 +103,15 @@ def get_filtering_filters(definitions):
 
     for entry in definitions['filter']:
         entry_filter = entry['filter']
-
         if type(entry_filter) is str:
             entry_filter = {'name': entry_filter}
 
+        entry_in = entry['in']
+        if type(entry_in) is str:
+            entry_in = [entry_in]
+
         f = FilterStringCreator(id_manager=id_manager) \
-            .create(entry['in'], entry_filter, entry['out'])
+            .create(entry_in, entry_filter, entry['out'])
         filters.append(f)
 
     return filters
