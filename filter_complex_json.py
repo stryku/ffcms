@@ -1,6 +1,5 @@
 import json
 
-
 """
 ffmpeg -y -i shord_behemot.mov -i shord_behemot.mov -i shord_behemot.mov -i shord_behemot.mov -filter_complex \      
 "[1:v]negate[a]; \
@@ -71,7 +70,7 @@ class FilterStringCreator:
         name = filter_definition['name']
         if name in self._simple_filters:
             return self._create_simple_filter(inputs, filter_definition, output)
-        elif name== 'hstack':
+        elif name == 'hstack':
             return self._create_stack(inputs, output, 'h')
         elif name == 'vstack':
             return self._create_stack(inputs, output, 'v')
@@ -96,52 +95,50 @@ class FilterStringCreator:
         return FILTER_TEMPLATE.format(inputs=inputs_str, filter=filter_str, output=output_str)
 
 
-def get_filtering_filters(definitions):
-    filters = []
+class Ffcms:
+    def get_filtering_filters(self, definitions):
+        filters = []
 
-    id_manager = IdManager(definitions)
+        id_manager = IdManager(definitions)
 
-    for entry in definitions['filters']:
-        entry_filter = entry['filter']
-        if type(entry_filter) is str:
-            entry_filter = {'name': entry_filter}
+        for entry in definitions['filters']:
+            entry_filter = entry['filter']
+            if type(entry_filter) is str:
+                entry_filter = {'name': entry_filter}
 
-        entry_in = entry['in']
-        if type(entry_in) is str:
-            entry_in = [entry_in]
+            entry_in = entry['in']
+            if type(entry_in) is str:
+                entry_in = [entry_in]
 
-        f = FilterStringCreator(id_manager=id_manager) \
-            .create(entry_in, entry_filter, entry['out'])
-        filters.append(f)
+            f = FilterStringCreator(id_manager=id_manager) \
+                .create(entry_in, entry_filter, entry['out'])
+            filters.append(f)
 
-    return filters
+        return filters
 
+    def definitions_to_filter_complex(self, definitions):
+        builder = FilterComplexBuilder()
 
-def definitions_to_filter_complex(definitions):
-    builder = FilterComplexBuilder()
+        for f in self.get_filtering_filters(definitions):
+            builder.with_filter(f)
 
-    for f in get_filtering_filters(definitions):
-        builder.with_filter(f)
+        return builder.build()
 
-    return builder.build()
+    def create_ffmpeg_command(self, json_str):
+        command_template = 'ffmpeg -y {} -filter_complex "{}" -map "{}" -c:v ffv1 {}'
 
+        definitions = json.loads(json_str)
 
-def create_ffmpeg_command(json_str):
-    command_template = 'ffmpeg -y {} -filter_complex "{}" -map "{}" -c:v ffv1 {}'
+        input_files = ' '.join(['-i ' + entry['file'] for entry in definitions['in']])
+        filter_complex_str = self.definitions_to_filter_complex(definitions)
+        filter_complex_output = LINK_ID_TEMPLATE.format(definitions['filters'][-1]['out'])
+        output_file_name = definitions['out']
 
-    definitions = json.loads(json_str)
-
-    input_files = ' '.join(['-i ' + entry['file'] for entry in definitions['in']])
-    filter_complex_str = definitions_to_filter_complex(definitions)
-    filter_complex_output = LINK_ID_TEMPLATE.format(definitions['filters'][-1]['out'])
-    output_file_name = definitions['out']
-
-    return command_template.format(input_files, filter_complex_str, filter_complex_output, output_file_name)
+        return command_template.format(input_files, filter_complex_str, filter_complex_output, output_file_name)
 
 
 with open('test_first.json', 'r') as f:
     test_json = f.read()
 
-result = create_ffmpeg_command(test_json)
+result = Ffcms().create_ffmpeg_command(test_json)
 print(result)
-
