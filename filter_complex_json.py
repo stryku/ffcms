@@ -99,10 +99,10 @@ class Ffcms:
     def __init__(self, definitions):
         self._definitions = definitions
 
+        self._id_manager = IdManager(self._definitions)
+
     def get_filtering_filters(self):
         filters = []
-
-        id_manager = IdManager(self._definitions)
 
         for entry in self._definitions['filters']:
             entry_filter = entry['filter']
@@ -113,7 +113,7 @@ class Ffcms:
             if type(entry_in) is str:
                 entry_in = [entry_in]
 
-            f = FilterStringCreator(id_manager=id_manager).create(entry_in, entry_filter, entry['out'])
+            f = FilterStringCreator(id_manager=self._id_manager).create(entry_in, entry_filter, entry['out'])
             filters.append(f)
 
         return filters
