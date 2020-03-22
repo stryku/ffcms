@@ -11,6 +11,13 @@ ffmpeg -y -i shord_behemot.mov -i shord_behemot.mov -i shord_behemot.mov -i shor
  [top][bottom]vstack=inputs=2[out]" -map "[out]" -c:v ffv1  multiple_input_grid.avi
 """
 
+"""
+ffmpeg -i input.mp4 -i image.png \
+-filter_complex "[0:v][1:v] overlay=25:25:enable='between(t,0,20)'" \
+-pix_fmt yuv420p -c:a copy \
+output.mp4
+"""
+
 FILTER_TEMPLATE = '{inputs}{filter}{output}'
 LINK_ID_TEMPLATE = '[{}]'
 
@@ -60,20 +67,28 @@ class FilterStringCreator:
             'edgedetect'
         ]
 
-    def create(self, inputs, filter_name, output):
-        if filter_name in self._simple_filters:
-            return self._create_simple_filter(inputs, filter_name, output)
-        elif filter_name == 'hstack':
+    def create(self, inputs, filter_definition, output):
+        name = filter_definition['name']
+        if name in self._simple_filters:
+            return self._create_simple_filter(inputs, filter_definition, output)
+        elif name== 'hstack':
             return self._create_stack(inputs, output, 'h')
-        elif filter_name == 'vstack':
+        elif name == 'vstack':
             return self._create_stack(inputs, output, 'v')
+        elif name == 'overlay':
+            return self._create_overlay(inputs, filter_definition, output)
+
+    def _create_overlay(self, inputs, filter_definition, output):
+        params = ['{}={}'.format(name, value) for name, value in filter_definition['params'].items()]
+        overlay = 'overlay={}'.format(':'.join(params))
+        return self._create_filter(inputs, overlay, output)
 
     def _create_stack(self, inputs, output, stack_letter):
         stack = '{}stack=inputs={}'.format(stack_letter, len(inputs))
         return self._create_filter(inputs, stack, output)
 
-    def _create_simple_filter(self, inputs, filter_name, output):
-        return self._create_filter(inputs, filter_name, output)
+    def _create_simple_filter(self, inputs, filter_definition, output):
+        return self._create_filter(inputs, filter_definition['name'], output)
 
     def _create_filter(self, inputs, filter_str, output):
         inputs_str = self._id_manager.join_link_ids(inputs)
@@ -87,8 +102,13 @@ def get_filtering_filters(definitions):
     id_manager = IdManager(definitions)
 
     for entry in definitions['filter']:
+        entry_filter = entry['filter']
+
+        if type(entry_filter) is str:
+            entry_filter = {'name': entry_filter}
+
         f = FilterStringCreator(id_manager=id_manager) \
-            .create(entry['inputs'], entry['filter'], entry['output'])
+            .create(entry['inputs'], entry_filter, entry['output'])
         filters.append(f)
 
     return filters
