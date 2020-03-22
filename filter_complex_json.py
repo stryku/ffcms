@@ -97,14 +97,15 @@ class Ffcms:
 
     def create_ffmpeg_command(self, command_template=None):
         if command_template is None:
-            command_template = 'ffmpeg -y {} -filter_complex "{}" -map "{}" -c:v ffv1 {}'
+            command_template = 'ffmpeg -y {inputs} -filter_complex "{filter_complex_str}" -map "{filter_complex_out}" -c:v ffv1 {output_file_name}'
 
         input_files = ' '.join(['-i ' + entry['file'] for entry in self._definitions['in']])
         filter_complex_str = self.create_filter_complex()
         filter_complex_output = LINK_ID_TEMPLATE.format(self._definitions['filters'][-1]['out'])
         output_file_name = self._definitions['out']
 
-        return command_template.format(input_files, filter_complex_str, filter_complex_output, output_file_name)
+        return command_template.format(inputs=input_files, filter_complex_str=filter_complex_str,
+                                       filter_complex_out=filter_complex_output, output_file_name=output_file_name)
 
     def _get_filtering_filters(self):
         filters = []
