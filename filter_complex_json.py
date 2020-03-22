@@ -101,7 +101,7 @@ def get_filtering_filters(definitions):
 
     id_manager = IdManager(definitions)
 
-    for entry in definitions['filter']:
+    for entry in definitions['filters']:
         entry_filter = entry['filter']
         if type(entry_filter) is str:
             entry_filter = {'name': entry_filter}
@@ -133,17 +133,15 @@ def create_ffmpeg_command(json_str):
 
     input_files = ' '.join(['-i ' + entry['file'] for entry in definitions['in']])
     filter_complex_str = definitions_to_filter_complex(definitions)
-    filter_complex_output = LINK_ID_TEMPLATE.format(definitions['filter'][-1]['out'])
+    filter_complex_output = LINK_ID_TEMPLATE.format(definitions['filters'][-1]['out'])
     output_file_name = definitions['out']
 
     return command_template.format(input_files, filter_complex_str, filter_complex_output, output_file_name)
 
 
-with open('test.json', 'r') as f:
+with open('test_first.json', 'r') as f:
     test_json = f.read()
 
 result = create_ffmpeg_command(test_json)
 print(result)
-
-
 
