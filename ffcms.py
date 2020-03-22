@@ -1,24 +1,6 @@
 import json
 import argparse
 
-"""
-ffmpeg -y -i shord_behemot.mov -i shord_behemot.mov -i shord_behemot.mov -i shord_behemot.mov -filter_complex \      
-"[1:v]negate[a]; \
- [2:v]hflip[b]; \
- [3:v]edgedetect[c]; \
- [0:v][a]hstack=inputs=2[top]; \
- [b][c]hstack=inputs=2[bottom]; \
- [top][bottom]vstack=inputs=2[out]" -map "[out]" -c:v ffv1  multiple_input_grid.avi
-"""
-
-"""
-ffmpeg -i input.mp4 -i image.png \
--filter_complex "[0:v][1:v] overlay=25:25:enable='between(t,0,20)'" \
--pix_fmt yuv420p -c:a copy \
-output.mp4
-"""
-
-FILTER_TEMPLATE = '{inputs}{filter}{output}'
 LINK_ID_TEMPLATE = '[{}]'
 
 
@@ -80,9 +62,11 @@ class FilterStringCreator:
         return self._create_filter(inputs, filter_definition['name'], output)
 
     def _create_filter(self, inputs, filter_str, output):
+        filter_template = '{inputs}{filter}{output}'
+
         inputs_str = self._id_manager.join_link_ids(inputs)
         output_str = LINK_ID_TEMPLATE.format(output)
-        return FILTER_TEMPLATE.format(inputs=inputs_str, filter=filter_str, output=output_str)
+        return filter_template.format(inputs=inputs_str, filter=filter_str, output=output_str)
 
 
 class Ffcms:
